@@ -1,4 +1,4 @@
-#WifiGuard
+#WifiGuard 
 
 WifiGuard is a macOS native cybersecurity project designed to help users understand their security position when connected to public wi-fi. 
 

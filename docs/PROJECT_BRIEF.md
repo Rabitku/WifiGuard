@@ -19,7 +19,7 @@ The app should not claim that a network is safe. Instead, it should explain whet
 ## Target Users
 
 - Students
-- Travellers
+- Travelers
 - Café workers
 - Remote workers
 - Non-technical users
