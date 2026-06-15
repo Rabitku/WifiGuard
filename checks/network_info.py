@@ -12,8 +12,13 @@ def get_network_info():
      if address.family == socket.AF_INET:
          ip_address = address.address
          
-         if not ip_address.startswith("127. "):
-             active_interfaces.append({
+         if ip_address.startswith("127. "):
+             
+             continue
+         if interface_name.startswith("lo"):
+                continue
+            
+         active_interfaces.append({
                  "interface": interface_name,
                  "ip_address": ip_address
              })
