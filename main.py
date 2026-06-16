@@ -13,7 +13,7 @@ def main():
     risk_result = calculate_basic_risk(network_info)
 
     print(f"Device name: {network_info['hostname']}")
-    print(f"Connected WiFi network: {wifi_network_name}")
+    print(f"Connected Wi-Fi network: {wifi_network_name}")
 
     print("\nActive network interfaces:")
 

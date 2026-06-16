@@ -37,3 +37,11 @@ WifiGuard does not:
 -plain-english recommendation
 -further external trusted sources about online safety and privacy
 
+## macOS Wi-Fi Name Limitation
+
+On some macOS versions, the connected Wi-Fi network name may be hidden by macOS privacy controls and shown as `<redacted>`.
+
+When this happens, WiFiGuard displays:
+
+```text
+Hidden by macOS privacy settings
