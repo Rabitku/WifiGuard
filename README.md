@@ -1,4 +1,6 @@
-#WifiGuard **Know your connection. Reduce your risk. Privacy matters.**
+# WifiGuard 
+
+**Know your connection. Reduce your risk. Privacy matters.**
 
 WifiGuard is a macOS native cybersecurity project designed to help users understand their security position when connected to public wi-fi. 
 
