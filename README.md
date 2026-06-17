@@ -1,45 +1,57 @@
-#WifiGuard **Know your connection. Reduce your risk. Privacy matters.**
+# WiFiGuard
 
-WifiGuard is a macOS native cybersecurity project designed to help users understand their security position when connected to public wi-fi. 
+**Know your connection. Reduce your risk. Privacy matters.**
 
-This tool performs local, read-only checks on the users device and connection. It is designed with accessibility and privacy as the priorities.
+WiFiGuard is a macOS-first cybersecurity project designed to help users understand their connection safety when using public Wi-Fi.
 
-##Project goals 
+The tool performs local, read-only checks on the user's own device and connection. It is designed with accessibility, privacy, and defensive security as the priorities.
 
--help users understand public wi-fi risks 
--perform safe local checks on the users device
--provide simple recommendations
--demonstrate Python, networking, defensive security, documentation, and developer skills
+## Project Goals
 
-##Ethical priorities
+- Help users understand public Wi-Fi risks
+- Perform safe local checks on the user's own device
+- Provide simple recommendations
+- Demonstrate Python, networking, defensive security, documentation, and developer skills
 
-WifiGuard is designed to be ran locally and protect the user from vulnerabilities. WifiGuard is not designed to perform any unethical and illegal actions and prohibits any modifications that would act out any action that are unethical and against the relevant law.
+## Ethical Priorities
 
-WifiGuard does not:
+WiFiGuard is designed to run locally and help users make safer decisions when connected to public Wi-Fi.
 
--scan other devices
--sniff traffic
--capture packets
--bypass captive portals
--attack networks
--test wi-fi passwords
--interfere with routers or access points
+WiFiGuard is not designed to perform unethical, illegal, or intrusive actions. The project avoids any functionality that scans, attacks, captures, bypasses, or interferes with networks or third-party devices.
 
-##MVP features 
+WiFiGuard does not:
 
--current network information 
--Local IP address
--DNS configuration
--firewall status
--VPN-like detection
--HTTPS connectivity check
--risk level
--plain-english recommendation
--further external trusted sources about online safety and privacy
+- Scan other devices
+- Sniff traffic
+- Capture packets
+- Bypass captive portals
+- Attack networks
+- Test Wi-Fi passwords
+- Interfere with routers or access points
+
+## MVP Features
+
+Planned MVP features include:
+
+- Current network information
+- Local IP address
+- DNS configuration
+- Firewall status
+- VPN-like connection detection
+- HTTPS connectivity check
+- Basic risk level
+- Plain-English recommendations
+- Further trusted sources about online safety and privacy
 
 ## macOS Wi-Fi Name Limitation
 
 On some macOS versions, the connected Wi-Fi network name may be hidden by macOS privacy controls and shown as `<redacted>`.
+
+This is not a security risk.
+
+## Disclaimer
+
+WiFiGuard provides guidance based on local checks. It cannot guarantee that a Wi-Fi network is safe.
 
 When this happens, WiFiGuard displays:
 
