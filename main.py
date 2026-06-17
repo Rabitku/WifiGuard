@@ -3,6 +3,7 @@ from core.risk_engine import calculate_basic_risk
 from checks.wifi_info import get_wifi_network_name
 from checks.dns_info import get_dns_servers
 from core.dns_classifier import classify_dns_servers
+from checks.macos_firewall_info import get_firewall_status
 
 def main():
     print("WiFiGuard by RabitCodeKu")
@@ -12,11 +13,14 @@ def main():
     network_info = get_network_info()
     wifi_network_name = get_wifi_network_name()
     dns_servers = get_dns_servers()
+    firewall_status = get_firewall_status()
     risk_result = calculate_basic_risk(network_info)
     classified_dns_servers = classify_dns_servers(dns_servers)
 
     print(f"\nDevice name: {network_info['hostname']}")
     print(f"\nConnected Wi-Fi network: {wifi_network_name}")
+    print(f"\nFirewall status: {firewall_status['Status']}")
+    print(f"Firewall message: {firewall_status['message']}")
     print("\nDNS servers:")
 
     if not classified_dns_servers:

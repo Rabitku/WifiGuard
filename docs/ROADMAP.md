@@ -47,3 +47,4 @@
 - PDF or Markdown export
 - Raspberry Pi travel-router extension
 - improve connectivity and speed for example by removing unnecessary background tasks using internet.
+- expand local known DNS database
