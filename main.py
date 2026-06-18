@@ -4,6 +4,7 @@ from checks.wifi_info import get_wifi_network_name
 from checks.dns_info import get_dns_servers
 from core.dns_classifier import classify_dns_servers
 from checks.macos_firewall_info import get_firewall_status
+from checks.vpn_info import get_vpn_status
 
 def main():
     print("WiFiGuard by RabitCodeKu")
@@ -14,38 +15,50 @@ def main():
     wifi_network_name = get_wifi_network_name()
     dns_servers = get_dns_servers()
     firewall_status = get_firewall_status()
+    vpn_status = get_vpn_status()
     risk_result = calculate_basic_risk(network_info)
     classified_dns_servers = classify_dns_servers(dns_servers)
 
-    print(f"\nDevice name: {network_info['hostname']}")
-    print(f"\nConnected Wi-Fi network: {wifi_network_name}")
-    print(f"\nFirewall status: {firewall_status['Status']}")
-    print(f"Firewall message: {firewall_status['message']}")
-    print("\nDNS servers:")
+    print("\nDevice:")
+    print(f"- Name: {network_info['hostname']}")
 
-    if not classified_dns_servers:
-     print("Unable to detect DNS servers.")
-    else:
-     for dns_server in classified_dns_servers:
-        print(f"- {dns_server['server']}")
-        print(f"  Classification: {dns_server['classification']}")
-        print(f"  Provider: {dns_server['provider']}")
-        print(f"  Notes: {dns_server['notes']}")
+    print("\nConnection:")
+    print(f"- Wi-Fi network: {wifi_network_name}")
 
     print("\nActive network interfaces:")
-
-
     if not network_info["active_interfaces"]:
         print("No active network interfaces found.")
     else:
         for interface in network_info["active_interfaces"]:
             print(f"- {interface['interface']}: {interface['ip_address']}")
-            
-    
+
+    print("\nDNS servers:")
+    if not classified_dns_servers:
+        print("Unable to detect DNS servers.")
+    else:
+        for dns_server in classified_dns_servers:
+            print(f"- {dns_server['server']}")
+            print(f"  Classification: {dns_server['classification']}")
+            print(f"  Provider: {dns_server['provider']}")
+            print(f"  Notes: {dns_server['notes']}")
+
+    print("\nFirewall:")
+    print(f"- Status: {firewall_status['Status']}")
+    print(f"- Details: {firewall_status['message']}")
+
+    print("\nVPN / Tunnel interfaces:")
+    print(f"- Status: {vpn_status['status']}")
+    if vpn_status["detected_interfaces"]:
+        print("- Detected interfaces:")
+        for interface in vpn_status["detected_interfaces"]:
+            print(f"  - {interface}")
+    else:
+        print("- Detected interfaces: None")
+    print(f"- Details: {vpn_status['message']}")
 
     print("\nRisk level:")
-    print(risk_result["level"])
-    print(risk_result["message"])
+    print(f"- {risk_result['level']}")
+    print(f"- {risk_result['message']}")
 
 
 if __name__ == "__main__":
