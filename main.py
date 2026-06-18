@@ -1,3 +1,4 @@
+from checks import gateway_info
 from checks.network_info import get_network_info
 from core.risk_engine import calculate_basic_risk
 from checks.wifi_info import get_wifi_network_name
@@ -5,6 +6,8 @@ from checks.dns_info import get_dns_servers
 from core.dns_classifier import classify_dns_servers
 from checks.macos_firewall_info import get_firewall_status
 from checks.vpn_info import get_vpn_status
+from core.ip_classifier import classify_ip_address
+from checks.gateway_info import get_default_gateway
 
 def main():
     print("WiFiGuard by RabitCodeKu")
@@ -16,6 +19,7 @@ def main():
     dns_servers = get_dns_servers()
     firewall_status = get_firewall_status()
     vpn_status = get_vpn_status()
+    gateway_info = get_default_gateway()
     risk_result = calculate_basic_risk(network_info)
     classified_dns_servers = classify_dns_servers(dns_servers)
 
@@ -24,13 +28,38 @@ def main():
 
     print("\nConnection:")
     print(f"- Wi-Fi network: {wifi_network_name}")
+    
+    print("\nRisk level:")
+    print(risk_result["level"])
+    print(risk_result["message"])
 
-    print("\nActive network interfaces:")
+    print("\nConnection details:")
+
     if not network_info["active_interfaces"]:
-        print("No active network interfaces found.")
+        print("- Active interface: Not detected")
     else:
-        for interface in network_info["active_interfaces"]:
-            print(f"- {interface['interface']}: {interface['ip_address']}")
+        primary_interface = network_info["active_interfaces"][0]
+    ip_info = classify_ip_address(primary_interface["ip_address"])
+
+    print(f"- Active interface: {primary_interface['interface']}")
+    print(f"- Local IP address: {primary_interface['ip_address']}")
+    print(f"- IP type: {ip_info['classification']}")
+    print(f"- IP notes: {ip_info['notes']}")
+
+    print(f"- Gateway status: {gateway_info['status']}")
+
+    if gateway_info["gateway"]:
+        gateway_ip_info = classify_ip_address(gateway_info["gateway"])
+
+    print(f"- Default gateway: {gateway_info['gateway']}")
+    print(f"- Gateway type: {gateway_ip_info['classification']}")
+
+    if gateway_info["interface"]:
+     print(f"- Gateway interface: {gateway_info['interface']}")
+
+    print(f"- Gateway details: {gateway_info['message']}")
+
+    print(f"- Details: {gateway_info['message']}")
 
     print("\nDNS servers:")
     if not classified_dns_servers:
@@ -63,6 +92,8 @@ def main():
     print("- Evidence:")
     for item in vpn_status["evidence"]:
         print(f"  - {item}")
+        
+        
     
 if __name__ == "__main__":
     main()
