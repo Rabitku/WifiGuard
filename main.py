@@ -1,6 +1,6 @@
 from checks import gateway_info
 from checks.network_info import get_network_info
-from core.risk_engine import calculate_basic_risk
+from core.risk_engine import calculate_risk
 from checks.wifi_info import get_wifi_network_name
 from checks.dns_info import get_dns_servers
 from core.dns_classifier import classify_dns_servers
@@ -22,9 +22,15 @@ def main():
     vpn_status = get_vpn_status()
     gateway_info = get_default_gateway()
     sharing_services_status = get_sharing_services_status()
-    risk_result = calculate_basic_risk(network_info)
     classified_dns_servers = classify_dns_servers(dns_servers)
-
+    risk_result = calculate_risk(
+        network_info=network_info,
+        firewall_status=firewall_status,
+        vpn_status=vpn_status,
+        classified_dns_servers=classified_dns_servers,
+        sharing_services=sharing_services_status,
+        gateway_info=gateway_info
+    )
     print("\nDevice:")
     print(f"- Name: {network_info['hostname']}")
 
@@ -35,25 +41,31 @@ def main():
 
     if not network_info["active_interfaces"]:
         print("- Active interface: Not detected")
+        print("- Local IP address: Not detected")
+        print("- IP type: Unknown")
+        print("- IP notes: No active interface was available to classify.")
     else:
         primary_interface = network_info["active_interfaces"][0]
-    ip_info = classify_ip_address(primary_interface["ip_address"])
+        ip_info = classify_ip_address(primary_interface["ip_address"])
 
-    print(f"- Active interface: {primary_interface['interface']}")
-    print(f"- Local IP address: {primary_interface['ip_address']}")
-    print(f"- IP type: {ip_info['classification']}")
-    print(f"- IP notes: {ip_info['notes']}")
+        print(f"- Active interface: {primary_interface['interface']}")
+        print(f"- Local IP address: {primary_interface['ip_address']}")
+        print(f"- IP type: {ip_info['classification']}")
+        print(f"- IP notes: {ip_info['notes']}")
 
     print(f"- Gateway status: {gateway_info['status']}")
 
     if gateway_info["gateway"]:
         gateway_ip_info = classify_ip_address(gateway_info["gateway"])
+        gateway_type = gateway_ip_info["classification"]
+    else:
+        gateway_type = "Not detected"
 
-    print(f"- Default gateway: {gateway_info['gateway']}")
-    print(f"- Gateway type: {gateway_ip_info['classification']}")
+    print(f"- Default gateway: {gateway_info['gateway'] or 'Not detected'}")
+    print(f"- Gateway type: {gateway_type}")
 
     if gateway_info["interface"]:
-     print(f"- Gateway interface: {gateway_info['interface']}")
+        print(f"- Gateway interface: {gateway_info['interface']}")
 
     print(f"- Gateway details: {gateway_info['message']}")
 
@@ -95,8 +107,20 @@ def main():
      print(f"- {service['service']}: {service['status']}")
         
     print("\nRisk level:")
-    print(risk_result["level"])
-    print(risk_result["message"])
+    print(f"- Level: {risk_result['level']}")
+
+    if risk_result["score"] is not None:
+     print(f"- Score: {risk_result['score']}/100")
+
+    print(f"- Summary: {risk_result['summary']}")
+
+    print("\nMain findings:")
+    for finding in risk_result["findings"]:
+     print(f"- {finding}")
+
+    print("\nRecommendations:")
+    for recommendation in risk_result["recommendations"]:
+     print(f"- {recommendation}")
         
         
     

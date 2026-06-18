@@ -5,10 +5,10 @@ def get_firewall_status():
         result = subprocess.run(["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"], capture_output=True, text=True)
         output = result.stdout.strip()
         if "enabled" in output:
-            return {"Status": "Firewall is enabled",
+            return {"Status": "Enabled",
                     "message": "Your firewall is active."}
         if "disabled" in output:
-            return {"Status": "Firewall is disabled",
+            return {"Status": "Disabled",
                     "message": "Your firewall is not active. This may expose your system to potential threats"}
         return {"Status": "Unknown", "message": "Unable to determine firewall status."}
             
