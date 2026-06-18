@@ -45,21 +45,24 @@ def main():
     print("\nFirewall:")
     print(f"- Status: {firewall_status['Status']}")
     print(f"- Details: {firewall_status['message']}")
-
-    print("\nVPN / Tunnel interfaces:")
+    
+    print("\nVPN / Tunnel routing:")
     print(f"- Status: {vpn_status['status']}")
-    if vpn_status["detected_interfaces"]:
-        print("- Detected interfaces:")
-        for interface in vpn_status["detected_interfaces"]:
-            print(f"  - {interface}")
-    else:
-        print("- Detected interfaces: None")
+    print(f"- Confidence: {vpn_status['confidence']}")
+    print(f"- Default route interface: {vpn_status['default_route_interface']}")
+
+    print(f"- Tunnel interfaces detected: {len(vpn_status['tunnel_interfaces'])}")
+
+    if vpn_status["connected_vpn_services"]:
+        print("- Connected macOS VPN services:")
+    for service in vpn_status["connected_vpn_services"]:
+        print(f"  - {service['name']} ({service['status']})")
+
     print(f"- Details: {vpn_status['message']}")
 
-    print("\nRisk level:")
-    print(f"- {risk_result['level']}")
-    print(f"- {risk_result['message']}")
-
-
+    print("- Evidence:")
+    for item in vpn_status["evidence"]:
+        print(f"  - {item}")
+    
 if __name__ == "__main__":
     main()
