@@ -8,6 +8,7 @@ from checks.macos_firewall_info import get_firewall_status
 from checks.vpn_info import get_vpn_status
 from core.ip_classifier import classify_ip_address
 from checks.gateway_info import get_default_gateway
+from checks.sharing_info import get_sharing_services_status
 
 def main():
     print("WiFiGuard by RabitCodeKu")
@@ -20,6 +21,7 @@ def main():
     firewall_status = get_firewall_status()
     vpn_status = get_vpn_status()
     gateway_info = get_default_gateway()
+    sharing_services_status = get_sharing_services_status()
     risk_result = calculate_basic_risk(network_info)
     classified_dns_servers = classify_dns_servers(dns_servers)
 
@@ -86,6 +88,11 @@ def main():
     print("- Evidence:")
     for item in vpn_status["evidence"]:
         print(f"  - {item}")
+        
+    print("\nSharing services:")
+
+    for service in sharing_services_status:
+     print(f"- {service['service']}: {service['status']}")
         
     print("\nRisk level:")
     print(risk_result["level"])
