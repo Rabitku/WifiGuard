@@ -28,10 +28,6 @@ def main():
 
     print("\nConnection:")
     print(f"- Wi-Fi network: {wifi_network_name}")
-    
-    print("\nRisk level:")
-    print(risk_result["level"])
-    print(risk_result["message"])
 
     print("\nConnection details:")
 
@@ -58,8 +54,6 @@ def main():
      print(f"- Gateway interface: {gateway_info['interface']}")
 
     print(f"- Gateway details: {gateway_info['message']}")
-
-    print(f"- Details: {gateway_info['message']}")
 
     print("\nDNS servers:")
     if not classified_dns_servers:
@@ -92,6 +86,10 @@ def main():
     print("- Evidence:")
     for item in vpn_status["evidence"]:
         print(f"  - {item}")
+        
+    print("\nRisk level:")
+    print(risk_result["level"])
+    print(risk_result["message"])
         
         
     
