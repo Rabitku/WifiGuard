@@ -1,4 +1,3 @@
-from checks import gateway_info
 from checks.network_info import get_network_info
 from core.risk_engine import calculate_risk
 from checks.wifi_info import get_wifi_network_name
@@ -9,11 +8,85 @@ from checks.vpn_info import get_vpn_status
 from core.ip_classifier import classify_ip_address
 from checks.gateway_info import get_default_gateway
 from checks.sharing_info import get_sharing_services_status
+from storage.database import initialise_database, save_report
+
+
+def build_check_results(
+    network_info,
+    wifi_network_name,
+    dns_servers,
+    classified_dns_servers,
+    firewall_status,
+    vpn_status,
+    gateway_info,
+    sharing_services_status,
+    risk_result
+):
+    active_interfaces = network_info.get("active_interfaces", [])
+
+    check_results = [
+        {
+            "check_name": "Wi-Fi network",
+            "status": wifi_network_name,
+            "message": "Detected Wi-Fi network name or macOS privacy fallback.",
+            "raw_value": wifi_network_name
+        },
+        {
+            "check_name": "Active network interfaces",
+            "status": "Detected" if active_interfaces else "Not detected",
+            "message": f"{len(active_interfaces)} active interface(s) found.",
+            "raw_value": active_interfaces
+        },
+        {
+            "check_name": "Default gateway",
+            "status": gateway_info.get("status"),
+            "message": gateway_info.get("message"),
+            "raw_value": gateway_info
+        },
+        {
+            "check_name": "DNS servers",
+            "status": "Detected" if dns_servers else "Not detected",
+            "message": f"{len(dns_servers)} DNS server(s) found.",
+            "raw_value": {
+                "servers": dns_servers,
+                "classified_servers": classified_dns_servers
+            }
+        },
+        {
+            "check_name": "macOS firewall",
+            "status": firewall_status.get("Status"),
+            "message": firewall_status.get("message"),
+            "raw_value": firewall_status
+        },
+        {
+            "check_name": "VPN / tunnel routing",
+            "status": vpn_status.get("status"),
+            "message": vpn_status.get("message"),
+            "raw_value": vpn_status
+        },
+        {
+            "check_name": "Sharing services",
+            "status": "Checked",
+            "message": f"{len(sharing_services_status)} sharing service(s) checked.",
+            "raw_value": sharing_services_status
+        },
+        {
+            "check_name": "Risk engine",
+            "status": risk_result.get("level"),
+            "message": risk_result.get("summary"),
+            "raw_value": risk_result
+        }
+    ]
+
+    return check_results
+
 
 def main():
     print("WiFiGuard by RabitCodeKu")
     print("Know your connection. Reduce your risk. Privacy matters.")
     print("-" * 40)
+
+    initialise_database()
 
     network_info = get_network_info()
     wifi_network_name = get_wifi_network_name()
@@ -31,6 +104,24 @@ def main():
         sharing_services=sharing_services_status,
         gateway_info=gateway_info
     )
+    check_results = build_check_results(
+        network_info=network_info,
+        wifi_network_name=wifi_network_name,
+        dns_servers=dns_servers,
+        classified_dns_servers=classified_dns_servers,
+        firewall_status=firewall_status,
+        vpn_status=vpn_status,
+        gateway_info=gateway_info,
+        sharing_services_status=sharing_services_status,
+        risk_result=risk_result
+    )
+    report_id = save_report(
+        device_name=network_info["hostname"],
+        wifi_name=wifi_network_name,
+        risk_result=risk_result,
+        check_results=check_results
+    )
+
     print("\nDevice:")
     print(f"- Name: {network_info['hostname']}")
 
@@ -92,8 +183,8 @@ def main():
 
     if vpn_status["connected_vpn_services"]:
         print("- Connected macOS VPN services:")
-    for service in vpn_status["connected_vpn_services"]:
-        print(f"  - {service['name']} ({service['status']})")
+        for service in vpn_status["connected_vpn_services"]:
+            print(f"  - {service['name']} ({service['status']})")
 
     print(f"- Details: {vpn_status['message']}")
 
@@ -104,25 +195,25 @@ def main():
     print("\nSharing services:")
 
     for service in sharing_services_status:
-     print(f"- {service['service']}: {service['status']}")
+        print(f"- {service['service']}: {service['status']}")
         
     print("\nRisk level:")
     print(f"- Level: {risk_result['level']}")
 
     if risk_result["score"] is not None:
-     print(f"- Score: {risk_result['score']}/100")
+        print(f"- Score: {risk_result['score']}/100")
 
     print(f"- Summary: {risk_result['summary']}")
 
     print("\nMain findings:")
     for finding in risk_result["findings"]:
-     print(f"- {finding}")
+        print(f"- {finding}")
 
     print("\nRecommendations:")
     for recommendation in risk_result["recommendations"]:
-     print(f"- {recommendation}")
-        
-        
-    
+        print(f"- {recommendation}")
+
+    print(f"\nReport saved locally with ID: {report_id}")
+
 if __name__ == "__main__":
     main()
