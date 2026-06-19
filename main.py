@@ -1,3 +1,5 @@
+import argparse
+
 from checks.network_info import get_network_info
 from core.risk_engine import calculate_risk
 from checks.wifi_info import get_wifi_network_name
@@ -8,7 +10,36 @@ from checks.vpn_info import get_vpn_status
 from core.ip_classifier import classify_ip_address
 from checks.gateway_info import get_default_gateway
 from checks.sharing_info import get_sharing_services_status
+from report_history import show_report_history
 from storage.database import initialise_database, save_report
+
+
+def positive_int(value):
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("history limit must be a number")
+
+    if number < 1:
+        raise argparse.ArgumentTypeError("history limit must be 1 or greater")
+
+    return number
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Run WiFiGuard local Wi-Fi risk checks."
+    )
+    parser.add_argument(
+        "--history",
+        nargs="?",
+        const=5,
+        type=positive_int,
+        metavar="LIMIT",
+        help="show recent saved report summaries instead of running a scan"
+    )
+
+    return parser.parse_args()
 
 
 def build_check_results(
@@ -81,7 +112,7 @@ def build_check_results(
     return check_results
 
 
-def main():
+def run_scan():
     print("WiFiGuard by RabitCodeKu")
     print("Know your connection. Reduce your risk. Privacy matters.")
     print("-" * 40)
@@ -214,6 +245,17 @@ def main():
         print(f"- {recommendation}")
 
     print(f"\nReport saved locally with ID: {report_id}")
+
+
+def main():
+    args = parse_arguments()
+
+    if args.history is not None:
+        show_report_history(args.history)
+        return
+
+    run_scan()
+
 
 if __name__ == "__main__":
     main()
