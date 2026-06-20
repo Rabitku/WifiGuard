@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 DATABASE_PATH = Path(__file__).resolve().parent.parent / "data" / "wifiguard.db"
+MAX_SAVED_REPORTS = 50
 
 
 def get_connection():
@@ -106,6 +107,57 @@ def save_report(device_name, wifi_name, risk_result, check_results):
             )
 
     return report_id
+
+
+def prune_old_reports(max_reports=MAX_SAVED_REPORTS):
+    initialise_database()
+
+    # The connection context manager keeps these deletes in one transaction.
+    with get_connection() as connection:
+        old_report_rows = connection.execute(
+            """
+            SELECT id
+            FROM reports
+            ORDER BY created_at DESC, id DESC
+            LIMIT -1 OFFSET ?
+            """,
+            (max_reports,),
+        ).fetchall()
+
+        old_report_ids = [row[0] for row in old_report_rows]
+
+        if not old_report_ids:
+            return 0
+
+        placeholders = ",".join("?" for _ in old_report_ids)
+
+        # Delete dependent check results first so no orphaned check rows remain.
+        connection.execute(
+            f"DELETE FROM check_results WHERE report_id IN ({placeholders})",
+            old_report_ids,
+        )
+        connection.execute(
+            f"DELETE FROM reports WHERE id IN ({placeholders})",
+            old_report_ids,
+        )
+
+    return len(old_report_ids)
+
+
+def clear_all_reports():
+    initialise_database()
+
+    # The connection context manager keeps these deletes in one transaction.
+    with get_connection() as connection:
+        deleted_report_count = connection.execute(
+            "SELECT COUNT(*) FROM reports"
+        ).fetchone()[0]
+
+        # Delete dependent check results before reports to satisfy foreign keys.
+        connection.execute("DELETE FROM check_results")
+        connection.execute("DELETE FROM reports")
+
+    return deleted_report_count
 
 
 def get_recent_reports(limit=5):

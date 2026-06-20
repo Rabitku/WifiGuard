@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from storage.database import get_recent_reports, get_report_by_id
+from storage.database import clear_all_reports, get_recent_reports, get_report_by_id
 
 
 def format_report_date(created_at):
@@ -118,3 +118,20 @@ def prompt_to_view_recent_reports(limit=5):
         return
 
     show_report_details(report)
+
+
+def prompt_to_clear_report_history():
+    print("This will permanently delete all local WiFiGuard reports.")
+
+    try:
+        confirmation = input("Type DELETE to continue: ")
+    except EOFError:
+        print("Report deletion cancelled.")
+        return
+
+    if confirmation != "DELETE":
+        print("Report deletion cancelled.")
+        return
+
+    clear_all_reports()
+    print("Local report history cleared.")

@@ -10,8 +10,12 @@ from checks.vpn_info import get_vpn_status
 from core.ip_classifier import classify_ip_address
 from checks.gateway_info import get_default_gateway
 from checks.sharing_info import get_sharing_services_status
-from report_history import prompt_to_view_recent_reports, show_report_history
-from storage.database import initialise_database, save_report
+from report_history import (
+    prompt_to_clear_report_history,
+    prompt_to_view_recent_reports,
+    show_report_history,
+)
+from storage.database import initialise_database, prune_old_reports, save_report
 
 
 def positive_int(value):
@@ -30,13 +34,19 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Run WiFiGuard local Wi-Fi risk checks."
     )
-    parser.add_argument(
+    command_group = parser.add_mutually_exclusive_group()
+    command_group.add_argument(
         "--history",
         nargs="?",
         const=5,
         type=positive_int,
         metavar="LIMIT",
         help="show recent saved report summaries instead of running a scan"
+    )
+    command_group.add_argument(
+        "--clear-history",
+        action="store_true",
+        help="delete all local saved reports after confirmation"
     )
 
     return parser.parse_args()
@@ -245,6 +255,12 @@ def run_scan():
         print(f"- {recommendation}")
 
     print(f"\nReport saved locally with ID: {report_id}")
+
+    deleted_reports = prune_old_reports()
+
+    if deleted_reports > 0:
+        print(f"Old reports cleaned up: {deleted_reports} removed.")
+
     prompt_to_view_recent_reports()
 
 
@@ -253,6 +269,10 @@ def main():
 
     if args.history is not None:
         show_report_history(args.history)
+        return
+
+    if args.clear_history:
+        prompt_to_clear_report_history()
         return
 
     run_scan()
