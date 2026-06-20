@@ -10,7 +10,7 @@ from checks.vpn_info import get_vpn_status
 from core.ip_classifier import classify_ip_address
 from checks.gateway_info import get_default_gateway
 from checks.sharing_info import get_sharing_services_status
-from report_history import show_report_history
+from report_history import prompt_to_view_recent_reports, show_report_history
 from storage.database import initialise_database, save_report
 
 
@@ -245,6 +245,7 @@ def run_scan():
         print(f"- {recommendation}")
 
     print(f"\nReport saved locally with ID: {report_id}")
+    prompt_to_view_recent_reports()
 
 
 def main():

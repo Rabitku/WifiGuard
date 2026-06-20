@@ -131,3 +131,30 @@ def get_recent_reports(limit=5):
         ).fetchall()
 
     return [dict(row) for row in rows]
+
+
+def get_report_by_id(report_id):
+    initialise_database()
+
+    with get_connection() as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT
+                id,
+                created_at,
+                device_name,
+                wifi_name,
+                risk_level,
+                risk_score,
+                summary
+            FROM reports
+            WHERE id = ?
+            """,
+            (report_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return dict(row)
