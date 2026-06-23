@@ -8,15 +8,23 @@ DATABASE_PATH = Path(__file__).resolve().parent.parent / "data" / "wifiguard.db"
 MAX_SAVED_REPORTS = 50
 
 
-def get_connection():
-    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(DATABASE_PATH)
+def get_database_path(database_path=None):
+    if database_path is None:
+        return DATABASE_PATH
+
+    return Path(database_path)
+
+
+def get_connection(database_path=None):
+    database_path = get_database_path(database_path)
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(database_path)
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
 
-def initialise_database():
-    with get_connection() as connection:
+def initialise_database(database_path=None):
+    with get_connection(database_path) as connection:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS reports (
@@ -56,11 +64,17 @@ def prepare_raw_value(raw_value):
     return json.dumps(raw_value, default=str)
 
 
-def save_report(device_name, wifi_name, risk_result, check_results):
-    initialise_database()
+def save_report(
+    device_name,
+    wifi_name,
+    risk_result,
+    check_results,
+    database_path=None
+):
+    initialise_database(database_path)
     created_at = datetime.now(timezone.utc).isoformat()
 
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         cursor = connection.execute(
             """
             INSERT INTO reports (
@@ -109,11 +123,11 @@ def save_report(device_name, wifi_name, risk_result, check_results):
     return report_id
 
 
-def prune_old_reports(max_reports=MAX_SAVED_REPORTS):
-    initialise_database()
+def prune_old_reports(max_reports=MAX_SAVED_REPORTS, database_path=None):
+    initialise_database(database_path)
 
     # The connection context manager keeps these deletes in one transaction.
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         old_report_rows = connection.execute(
             """
             SELECT id
@@ -144,11 +158,11 @@ def prune_old_reports(max_reports=MAX_SAVED_REPORTS):
     return len(old_report_ids)
 
 
-def clear_all_reports():
-    initialise_database()
+def clear_all_reports(database_path=None):
+    initialise_database(database_path)
 
     # The connection context manager keeps these deletes in one transaction.
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         deleted_report_count = connection.execute(
             "SELECT COUNT(*) FROM reports"
         ).fetchone()[0]
@@ -160,10 +174,10 @@ def clear_all_reports():
     return deleted_report_count
 
 
-def get_recent_reports(limit=5):
-    initialise_database()
+def get_recent_reports(limit=5, database_path=None):
+    initialise_database(database_path)
 
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
@@ -185,10 +199,10 @@ def get_recent_reports(limit=5):
     return [dict(row) for row in rows]
 
 
-def get_report_by_id(report_id):
-    initialise_database()
+def get_report_by_id(report_id, database_path=None):
+    initialise_database(database_path)
 
-    with get_connection() as connection:
+    with get_connection(database_path) as connection:
         connection.row_factory = sqlite3.Row
         row = connection.execute(
             """
