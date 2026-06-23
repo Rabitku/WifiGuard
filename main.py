@@ -2,8 +2,8 @@ import argparse
 
 from checks.network_info import get_network_info
 from core.risk_engine import calculate_risk
-from checks.wifi_info import get_wifi_network_name
-from checks.dns_info import get_dns_servers
+from checks.wifi_info import get_wifi_network_info
+from checks.dns_info import get_dns_info
 from core.dns_classifier import classify_dns_servers
 from checks.macos_firewall_info import get_firewall_status
 from checks.vpn_info import get_vpn_status
@@ -54,8 +54,8 @@ def parse_arguments():
 
 def build_check_results(
     network_info,
-    wifi_network_name,
-    dns_servers,
+    wifi_info,
+    dns_info,
     classified_dns_servers,
     firewall_status,
     vpn_status,
@@ -63,20 +63,18 @@ def build_check_results(
     sharing_services_status,
     risk_result
 ):
-    active_interfaces = network_info.get("active_interfaces", [])
-
     check_results = [
         {
             "check_name": "Wi-Fi network",
-            "status": wifi_network_name,
-            "message": "Detected Wi-Fi network name or macOS privacy fallback.",
-            "raw_value": wifi_network_name
+            "status": wifi_info.get("status"),
+            "message": wifi_info.get("message"),
+            "raw_value": wifi_info
         },
         {
             "check_name": "Active network interfaces",
-            "status": "Detected" if active_interfaces else "Not detected",
-            "message": f"{len(active_interfaces)} active interface(s) found.",
-            "raw_value": active_interfaces
+            "status": network_info.get("status"),
+            "message": network_info.get("message"),
+            "raw_value": network_info
         },
         {
             "check_name": "Default gateway",
@@ -86,10 +84,10 @@ def build_check_results(
         },
         {
             "check_name": "DNS servers",
-            "status": "Detected" if dns_servers else "Not detected",
-            "message": f"{len(dns_servers)} DNS server(s) found.",
+            "status": dns_info.get("status"),
+            "message": dns_info.get("message"),
             "raw_value": {
-                "servers": dns_servers,
+                "servers": dns_info.get("servers", []),
                 "classified_servers": classified_dns_servers
             }
         },
@@ -130,8 +128,10 @@ def run_scan():
     initialise_database()
 
     network_info = get_network_info()
-    wifi_network_name = get_wifi_network_name()
-    dns_servers = get_dns_servers()
+    wifi_info = get_wifi_network_info()
+    wifi_network_name = wifi_info["name"]
+    dns_info = get_dns_info()
+    dns_servers = dns_info["servers"]
     firewall_status = get_firewall_status()
     vpn_status = get_vpn_status()
     gateway_info = get_default_gateway()
@@ -147,8 +147,8 @@ def run_scan():
     )
     check_results = build_check_results(
         network_info=network_info,
-        wifi_network_name=wifi_network_name,
-        dns_servers=dns_servers,
+        wifi_info=wifi_info,
+        dns_info=dns_info,
         classified_dns_servers=classified_dns_servers,
         firewall_status=firewall_status,
         vpn_status=vpn_status,
@@ -168,6 +168,7 @@ def run_scan():
 
     print("\nConnection:")
     print(f"- Wi-Fi network: {wifi_network_name}")
+    print(f"- Wi-Fi status: {wifi_info['status']}")
 
     print("\nConnection details:")
 
@@ -190,10 +191,12 @@ def run_scan():
     if gateway_info["gateway"]:
         gateway_ip_info = classify_ip_address(gateway_info["gateway"])
         gateway_type = gateway_ip_info["classification"]
+        gateway_value = gateway_info["gateway"]
     else:
-        gateway_type = "Not detected"
+        gateway_value = gateway_info["status"]
+        gateway_type = gateway_info["status"]
 
-    print(f"- Default gateway: {gateway_info['gateway'] or 'Not detected'}")
+    print(f"- Default gateway: {gateway_value}")
     print(f"- Gateway type: {gateway_type}")
 
     if gateway_info["interface"]:
@@ -203,7 +206,8 @@ def run_scan():
 
     print("\nDNS servers:")
     if not classified_dns_servers:
-        print("Unable to detect DNS servers.")
+        print(f"- Status: {dns_info['status']}")
+        print(f"- Details: {dns_info['message']}")
     else:
         for dns_server in classified_dns_servers:
             print(f"- {dns_server['server']}")

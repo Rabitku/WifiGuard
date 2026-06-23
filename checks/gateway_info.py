@@ -14,8 +14,8 @@ def get_default_gateway():
             return {
                 "gateway": None,
                 "interface": None,
-                "status": "Unable to detect default gateway",
-                "message": "WiFiGuard could not determine the default gateway."
+                "status": "Unavailable",
+                "message": "WiFiGuard could not verify the default gateway on this Mac."
             }
 
         gateway = None
@@ -34,21 +34,21 @@ def get_default_gateway():
             return {
                 "gateway": gateway,
                 "interface": interface,
-                "status": "Default gateway detected",
+                "status": "Detected",
                 "message": "WiFiGuard detected the local gateway used for default network traffic."
             }
 
         return {
             "gateway": None,
             "interface": None,
-            "status": "Unable to detect default gateway",
-            "message": "The default route command ran, but no gateway information was found."
+            "status": "Not detected",
+            "message": "The gateway check completed, but no default gateway was detected."
         }
 
     except Exception:
         return {
             "gateway": None,
             "interface": None,
-            "status": "Gateway check failed",
+            "status": "Check failed",
             "message": "WiFiGuard could not complete the gateway check."
         }

@@ -96,7 +96,7 @@ def get_configured_vpn_services():
             state_match = re.search(r"\(([^)]+)\)", line)
 
             service_name = name_match.group(1) if name_match else line
-            listed_state = state_match.group(1) if state_match else "Unknown"
+            listed_state = state_match.group(1) if state_match else "Unavailable"
 
             services.append({
                 "name": service_name,
@@ -123,7 +123,7 @@ def get_vpn_service_status(service_name):
         )
 
         if result.returncode != 0:
-            return "Unknown"
+            return "Unavailable"
 
         for line in result.stdout.splitlines():
             line = line.strip()
@@ -131,10 +131,10 @@ def get_vpn_service_status(service_name):
             if line:
                 return line
 
-        return "Unknown"
+        return "Unavailable"
 
     except Exception:
-        return "Unknown"
+        return "Unavailable"
 
 
 def get_connected_vpn_services(configured_services):
@@ -154,7 +154,21 @@ def get_connected_vpn_services(configured_services):
 
 def get_vpn_status():
     default_route_interface = get_default_route_interface()
-    tunnel_interfaces = get_active_tunnel_interfaces()
+
+    try:
+        tunnel_interfaces = get_active_tunnel_interfaces()
+    except Exception:
+        return {
+            "status": "Check failed",
+            "confidence": "Low",
+            "default_route_interface": default_route_interface,
+            "tunnel_interfaces": [],
+            "configured_vpn_services": [],
+            "connected_vpn_services": [],
+            "evidence": ["WiFiGuard could not complete the VPN/tunnel interface check."],
+            "message": "WiFiGuard could not complete the VPN/tunnel routing check."
+        }
+
     configured_vpn_services = get_configured_vpn_services()
     connected_vpn_services = get_connected_vpn_services(configured_vpn_services)
 
@@ -184,7 +198,7 @@ def get_vpn_status():
 
     if default_route_uses_tunnel and connected_vpn_services:
         return {
-            "status": "Possible VPN active",
+            "status": "Detected",
             "confidence": "High",
             "default_route_interface": default_route_interface,
             "tunnel_interfaces": tunnel_interfaces,
@@ -196,7 +210,7 @@ def get_vpn_status():
 
     if default_route_uses_tunnel:
         return {
-            "status": "Possible VPN route detected",
+            "status": "Detected",
             "confidence": "Medium",
             "default_route_interface": default_route_interface,
             "tunnel_interfaces": tunnel_interfaces,
@@ -208,7 +222,7 @@ def get_vpn_status():
 
     if connected_vpn_services:
         return {
-            "status": "VPN service connected, route not confirmed",
+            "status": "Detected",
             "confidence": "Medium",
             "default_route_interface": default_route_interface,
             "tunnel_interfaces": tunnel_interfaces,
@@ -220,7 +234,7 @@ def get_vpn_status():
 
     if tunnel_interfaces:
         return {
-            "status": "VPN route not confirmed",
+            "status": "Not detected",
             "confidence": "Low",
             "default_route_interface": default_route_interface,
             "tunnel_interfaces": tunnel_interfaces,
@@ -231,7 +245,7 @@ def get_vpn_status():
         }
 
     return {
-        "status": "No VPN evidence found",
+        "status": "Not detected",
         "confidence": "Low",
         "default_route_interface": default_route_interface,
         "tunnel_interfaces": tunnel_interfaces,

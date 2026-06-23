@@ -85,19 +85,44 @@ def get_wifi_name_from_ipconfig(wifi_interface):
 
 
 def get_wifi_network_name():
+    wifi_info = get_wifi_network_info()
+    return wifi_info["name"]
+
+
+def get_wifi_network_info():
     wifi_interface = get_wifi_interface()
 
     if wifi_interface is None:
-        return "Unable to detect Wi-Fi interface"
+        return {
+            "status": "Unavailable",
+            "name": "Unavailable",
+            "interface": None,
+            "message": "WiFiGuard could not verify the Wi-Fi interface on this Mac."
+        }
 
     wifi_name = get_wifi_name_from_networksetup(wifi_interface)
 
     if wifi_name:
-        return wifi_name
+        return {
+            "status": "Detected",
+            "name": wifi_name,
+            "interface": wifi_interface,
+            "message": "WiFiGuard detected the current Wi-Fi network name."
+        }
 
     wifi_name = get_wifi_name_from_ipconfig(wifi_interface)
 
     if wifi_name:
-        return wifi_name
+        return {
+            "status": "Detected",
+            "name": wifi_name,
+            "interface": wifi_interface,
+            "message": "WiFiGuard detected the current Wi-Fi network name."
+        }
 
-    return "Unable to detect Wi-Fi network name"
+    return {
+        "status": "Unavailable",
+        "name": "Unavailable",
+        "interface": wifi_interface,
+        "message": "WiFiGuard could not verify the Wi-Fi network name on this Mac."
+    }

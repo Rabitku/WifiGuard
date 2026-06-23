@@ -33,12 +33,12 @@ def make_firewall_status(status="Enabled"):
         }
 
     return {
-        "Status": "Unknown",
-        "message": "Unable to determine firewall status."
+        "Status": "Unavailable",
+        "message": "WiFiGuard could not verify the firewall status on this Mac."
     }
 
 
-def make_vpn_status(status="VPN route not confirmed"):
+def make_vpn_status(status="Not detected"):
     return {
         "status": status,
         "message": "VPN routing was not confirmed."
@@ -61,15 +61,15 @@ def make_gateway_info(detected=True):
         return {
             "gateway": "192.168.1.1",
             "interface": "en0",
-            "status": "Default gateway detected",
+            "status": "Detected",
             "message": "WiFiGuard detected the local gateway used for default network traffic."
         }
 
     return {
         "gateway": None,
         "interface": None,
-        "status": "Unable to detect default gateway",
-        "message": "WiFiGuard could not determine the default gateway."
+        "status": "Not detected",
+        "message": "The gateway check completed, but no default gateway was detected."
     }
 
 
@@ -90,6 +90,17 @@ def make_sharing_services(active=False):
             "status": "Not active",
             "confidence": "Medium",
             "message": "The SMB file sharing service does not appear to be running."
+        }
+    ]
+
+
+def make_unavailable_sharing_services():
+    return [
+        {
+            "service": "Remote Apple Events",
+            "status": "Unavailable",
+            "confidence": "Low",
+            "message": "WiFiGuard could not verify Remote Apple Events status on this Mac."
         }
     ]
 
@@ -130,10 +141,14 @@ def test_no_active_network_interface_returns_unknown_state():
 
 def test_firewall_enabled_is_recognised_without_enable_firewall_recommendation():
     result = calculate_baseline_risk(
-        firewall_status=make_firewall_status("Enabled")
+        firewall_status={
+            "Status": "Firewall is enabled",
+            "message": "Your firewall is active."
+        }
     )
 
     assert text_contains(result["findings"], "firewall is enabled")
+    assert not text_contains(result["findings"], "firewall status could not be confirmed")
     assert not text_contains(result["recommendations"], "enable the macos firewall")
 
 
@@ -150,6 +165,26 @@ def test_firewall_disabled_scores_higher_than_firewall_enabled():
     assert text_contains(disabled_result["recommendations"], "enable the macos firewall")
 
 
+def test_unavailable_firewall_is_not_treated_like_disabled_firewall():
+    enabled_result = calculate_baseline_risk(
+        firewall_status=make_firewall_status("Enabled")
+    )
+    unavailable_result = calculate_baseline_risk(
+        firewall_status={
+            "Status": "Unavailable",
+            "message": "WiFiGuard could not verify the firewall status on this Mac."
+        }
+    )
+    disabled_result = calculate_baseline_risk(
+        firewall_status=make_firewall_status("Disabled")
+    )
+
+    assert unavailable_result["score"] == enabled_result["score"]
+    assert unavailable_result["score"] < disabled_result["score"]
+    assert text_contains(unavailable_result["findings"], "could not verify the firewall")
+    assert not text_contains(unavailable_result["recommendations"], "enable the macos firewall")
+
+
 def test_active_sharing_service_increases_score_and_adds_recommendation():
     inactive_result = calculate_baseline_risk(
         sharing_services=make_sharing_services(active=False)
@@ -162,6 +197,19 @@ def test_active_sharing_service_increases_score_and_adds_recommendation():
     assert text_contains(active_result["findings"], "file sharing")
     assert text_contains(active_result["recommendations"], "sharing services")
     assert text_contains(active_result["recommendations"], "turn off")
+
+
+def test_unavailable_sharing_service_is_not_treated_as_active():
+    inactive_result = calculate_baseline_risk(
+        sharing_services=make_sharing_services(active=False)
+    )
+    unavailable_result = calculate_baseline_risk(
+        sharing_services=make_unavailable_sharing_services()
+    )
+
+    assert unavailable_result["score"] == inactive_result["score"]
+    assert text_contains(unavailable_result["findings"], "could not verify some sharing services")
+    assert not text_contains(unavailable_result["recommendations"], "turn off sharing services")
 
 
 def test_safer_baseline_returns_score_findings_and_recommendations():

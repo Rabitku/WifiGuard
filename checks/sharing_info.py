@@ -90,16 +90,16 @@ def check_remote_login():
     if is_local_port_open(22):
         return {
             "service": "Remote Login",
-            "status": "Possibly active",
+            "status": "Active",
             "confidence": "Medium",
             "message": "Port 22 is open locally, which may indicate SSH/Remote Login is active."
         }
 
     return {
         "service": "Remote Login",
-        "status": "Not active or unavailable",
-        "confidence": "Medium",
-        "message": "Remote Login could not be confirmed, and local SSH port 22 does not appear open."
+        "status": "Unavailable",
+        "confidence": "Low",
+        "message": "WiFiGuard could not verify Remote Login status on this Mac."
     }
 
 
@@ -142,9 +142,9 @@ def check_remote_apple_events():
 
     return {
         "service": "Remote Apple Events",
-        "status": "Unknown",
+        "status": "Unavailable",
         "confidence": "Low",
-        "message": "WiFiGuard could not determine Remote Apple Events status without elevated permissions."
+        "message": "WiFiGuard could not verify Remote Apple Events status on this Mac."
     }
 
 
@@ -154,9 +154,9 @@ def check_printer_sharing():
     if output is None:
         return {
             "service": "Printer Sharing",
-            "status": "Unknown",
+            "status": "Unavailable",
             "confidence": "Low",
-            "message": "WiFiGuard could not determine Printer Sharing status."
+            "message": "WiFiGuard could not verify Printer Sharing status on this Mac."
         }
 
     if "_share_printers=1" in output or "share_printers=1" in output:
@@ -169,7 +169,7 @@ def check_printer_sharing():
 
     return {
         "service": "Printer Sharing",
-        "status": "Disabled or not active",
+        "status": "Not active",
         "confidence": "Medium",
         "message": "Printer Sharing does not appear to be enabled."
     }
