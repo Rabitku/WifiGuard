@@ -43,6 +43,8 @@ WiFiGuard currently performs local, read-only checks for:
 - Basic risk level and plain-English recommendations
 - Local SQLite report history through `--history` and `--clear-history`
 
+Automated tests run on pushes and pull requests with GitHub Actions.
+
 ## macOS Wi-Fi Name Limitation
 
 On some macOS versions, the connected Wi-Fi network name may be hidden by macOS privacy controls and shown as `<redacted>`.
