@@ -29,19 +29,19 @@ WiFiGuard does not:
 - Test Wi-Fi passwords
 - Interfere with routers or access points
 
-## MVP Features
+## Current CLI Features
 
-Planned MVP features include:
+WiFiGuard currently performs local, read-only checks for:
 
-- Current network information
-- Local IP address
-- DNS configuration
-- Firewall status
-- VPN-like connection detection
-- HTTPS connectivity check
-- Basic risk level
-- Plain-English recommendations
-- Further trusted sources about online safety and privacy
+- Current network information and local IP address
+- Current Wi-Fi network name when macOS allows it
+- Default gateway details
+- DNS configuration and local DNS classification
+- macOS firewall status
+- VPN/tunnel routing evidence
+- Common macOS sharing services
+- Basic risk level and plain-English recommendations
+- Local SQLite report history through `--history` and `--clear-history`
 
 ## macOS Wi-Fi Name Limitation
 
@@ -49,11 +49,12 @@ On some macOS versions, the connected Wi-Fi network name may be hidden by macOS 
 
 This is not a security risk.
 
-## Disclaimer
-
-WiFiGuard provides guidance based on local checks. It cannot guarantee that a Wi-Fi network is safe.
-
 When this happens, WiFiGuard displays:
 
 ```text
 Hidden by macOS privacy settings
+```
+
+## Disclaimer
+
+WiFiGuard provides guidance based on local checks. It cannot guarantee that a Wi-Fi network is safe.

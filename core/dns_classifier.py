@@ -24,14 +24,6 @@ def classify_dns_server(dns_server):
     try:
         ip = ipaddress.ip_address(clean_dns_server)
 
-        if ip.is_private:
-            return {
-                "server": dns_server,
-                "classification": "Private/local DNS",
-                "provider": "Local network",
-                "notes": "This appears to be a private or local network DNS server."
-            }
-
         if ip.is_loopback:
             return {
                 "server": dns_server,
@@ -46,6 +38,14 @@ def classify_dns_server(dns_server):
                 "classification": "Link-local DNS",
                 "provider": "Local network",
                 "notes": "This appears to be a link-local network address."
+            }
+
+        if ip.is_private:
+            return {
+                "server": dns_server,
+                "classification": "Private/local DNS",
+                "provider": "Local network",
+                "notes": "This appears to be a private or local network DNS server."
             }
 
         return {
