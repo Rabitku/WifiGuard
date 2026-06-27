@@ -64,6 +64,16 @@ def prepare_raw_value(raw_value):
     return json.dumps(raw_value, default=str)
 
 
+def parse_raw_value(raw_value):
+    if raw_value is None:
+        return None
+
+    try:
+        return json.loads(raw_value)
+    except (TypeError, ValueError):
+        return raw_value
+
+
 def save_report(
     device_name,
     wifi_name,
@@ -220,7 +230,29 @@ def get_report_by_id(report_id, database_path=None):
             (report_id,),
         ).fetchone()
 
-    if row is None:
-        return None
+        if row is None:
+            return None
 
-    return dict(row)
+        check_result_rows = connection.execute(
+            """
+            SELECT
+                check_name,
+                status,
+                message,
+                raw_value
+            FROM check_results
+            WHERE report_id = ?
+            ORDER BY id ASC
+            """,
+            (report_id,),
+        ).fetchall()
+
+    report = dict(row)
+    report["check_results"] = []
+
+    for check_result_row in check_result_rows:
+        check_result = dict(check_result_row)
+        check_result["raw_value"] = parse_raw_value(check_result.get("raw_value"))
+        report["check_results"].append(check_result)
+
+    return report

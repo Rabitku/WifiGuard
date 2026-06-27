@@ -67,6 +67,22 @@ def show_report_details(report):
     print(f"Score: {format_score(report.get('risk_score'))}")
     print(f"Summary: {report.get('summary') or 'No summary available.'}")
 
+    print("\nSaved check results:")
+
+    check_results = report.get("check_results", [])
+
+    if not check_results:
+        print("No saved check results are available for this report.")
+        return
+
+    for check_result in check_results:
+        check_name = check_result.get("check_name") or "Unknown check"
+        status = check_result.get("status") or "Unknown"
+        message = check_result.get("message") or "No details available."
+
+        print(f"- {check_name}: {status}")
+        print(f"  Details: {message}")
+
 
 def prompt_to_view_recent_reports(limit=5):
     try:

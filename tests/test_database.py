@@ -1,4 +1,5 @@
 from storage import database
+from report_history import show_report_details
 
 
 def sample_risk_result(level="Medium risk", score=25, summary="Sample summary."):
@@ -51,7 +52,11 @@ def save_sample_report(
             score=risk_score,
             summary=summary
         ),
-        check_results=check_results or sample_check_results(),
+        check_results=(
+            check_results
+            if check_results is not None
+            else sample_check_results()
+        ),
         database_path=database_path
     )
 
@@ -152,7 +157,116 @@ def test_get_report_by_id_returns_matching_report_or_none(tmp_path):
     assert report["device_name"] == "Lookup-Mac.local"
     assert report["risk_level"] == "Lower risk"
     assert report["risk_score"] == 15
+    assert isinstance(report["check_results"], list)
     assert missing_report is None
+
+
+def test_get_report_by_id_includes_only_its_saved_check_results(tmp_path):
+    database_path = tmp_path / "wifiguard.db"
+    first_check_results = [
+        {
+            "check_name": "Wi-Fi network",
+            "status": "Detected",
+            "message": "WiFiGuard detected the current Wi-Fi network name.",
+            "raw_value": {"name": "First Wi-Fi"}
+        }
+    ]
+    second_check_results = [
+        {
+            "check_name": "DNS servers",
+            "status": "Detected",
+            "message": "2 DNS server(s) detected.",
+            "raw_value": {"servers": ["192.168.1.1", "1.1.1.1"]}
+        },
+        {
+            "check_name": "Risk engine",
+            "status": "Lower risk",
+            "message": "Your current setup appears lower risk.",
+            "raw_value": {"level": "Lower risk", "score": 15}
+        }
+    ]
+
+    save_sample_report(
+        database_path,
+        device_name="First-Mac.local",
+        check_results=first_check_results
+    )
+    second_report_id = save_sample_report(
+        database_path,
+        device_name="Second-Mac.local",
+        check_results=second_check_results
+    )
+
+    report = database.get_report_by_id(
+        second_report_id,
+        database_path=database_path
+    )
+
+    assert [check["check_name"] for check in report["check_results"]] == [
+        "DNS servers",
+        "Risk engine"
+    ]
+    assert [check["status"] for check in report["check_results"]] == [
+        "Detected",
+        "Lower risk"
+    ]
+    assert report["check_results"][0]["raw_value"] == {
+        "servers": ["192.168.1.1", "1.1.1.1"]
+    }
+
+
+def test_get_report_by_id_decodes_raw_json_and_preserves_plain_text(tmp_path):
+    database_path = tmp_path / "wifiguard.db"
+    check_results = [
+        {
+            "check_name": "JSON check",
+            "status": "Detected",
+            "message": "Valid JSON should be decoded.",
+            "raw_value": {"nested": ["ok"]}
+        },
+        {
+            "check_name": "Plain text check",
+            "status": "Checked",
+            "message": "Plain text should stay as text.",
+            "raw_value": "plain text value"
+        },
+        {
+            "check_name": "Malformed JSON check",
+            "status": "Checked",
+            "message": "Malformed JSON should stay as text.",
+            "raw_value": "{not valid json"
+        },
+        {
+            "check_name": "Missing raw value check",
+            "status": "Checked",
+            "message": "Missing raw values should not crash."
+        }
+    ]
+
+    report_id = save_sample_report(
+        database_path,
+        check_results=check_results
+    )
+
+    report = database.get_report_by_id(report_id, database_path=database_path)
+    raw_values = [check["raw_value"] for check in report["check_results"]]
+
+    assert raw_values == [
+        {"nested": ["ok"]},
+        "plain text value",
+        "{not valid json",
+        None
+    ]
+
+
+def test_get_report_by_id_returns_empty_check_results_list_safely(tmp_path):
+    database_path = tmp_path / "wifiguard.db"
+
+    report_id = save_sample_report(database_path, check_results=[])
+
+    report = database.get_report_by_id(report_id, database_path=database_path)
+
+    assert report["check_results"] == []
 
 
 def test_check_results_are_linked_to_the_correct_report(tmp_path):
@@ -242,3 +356,62 @@ def test_clear_all_reports_removes_reports_and_check_results(tmp_path):
     assert second_deleted_count == 0
     assert fetch_count(database_path, "reports") == 0
     assert fetch_count(database_path, "check_results") == 0
+
+
+def test_show_report_details_displays_saved_check_results(capsys):
+    report = {
+        "id": 10,
+        "created_at": "2026-06-27T12:30:00+00:00",
+        "device_name": "Test-Mac.local",
+        "wifi_name": "Test Wi-Fi",
+        "risk_level": "Lower risk",
+        "risk_score": 15,
+        "summary": "Your current setup appears lower risk.",
+        "check_results": [
+            {
+                "check_name": "Wi-Fi network",
+                "status": "Detected",
+                "message": "WiFiGuard detected the current Wi-Fi network name.",
+                "raw_value": {"name": "Test Wi-Fi"}
+            },
+            {
+                "check_name": "macOS firewall",
+                "status": "Enabled",
+                "message": "Your firewall is active.",
+                "raw_value": {"Status": "Enabled"}
+            }
+        ]
+    }
+
+    show_report_details(report)
+
+    output = capsys.readouterr().out
+
+    assert "Report details:" in output
+    assert "Saved check results:" in output
+    assert "- Wi-Fi network: Detected" in output
+    assert "  Details: WiFiGuard detected the current Wi-Fi network name." in output
+    assert "- macOS firewall: Enabled" in output
+    assert "  Details: Your firewall is active." in output
+    assert "raw_value" not in output
+    assert "{'name': 'Test Wi-Fi'}" not in output
+
+
+def test_show_report_details_handles_reports_without_saved_check_results(capsys):
+    report = {
+        "id": 11,
+        "created_at": "2026-06-27T12:30:00+00:00",
+        "device_name": "Test-Mac.local",
+        "wifi_name": "Test Wi-Fi",
+        "risk_level": "Unknown",
+        "risk_score": None,
+        "summary": "No active network connection was detected.",
+        "check_results": []
+    }
+
+    show_report_details(report)
+
+    output = capsys.readouterr().out
+
+    assert "Saved check results:" in output
+    assert "No saved check results are available for this report." in output
