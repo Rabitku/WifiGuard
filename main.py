@@ -44,12 +44,30 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def prompt_for_network_context():
+    try:
+        answer = input("Are you using a public or shared Wi-Fi network? (y/n): ")
+    except EOFError:
+        return "unknown"
+
+    answer = answer.strip().lower()
+
+    if answer in ["y", "yes"]:
+        return "public"
+
+    if answer in ["n", "no"]:
+        return "trusted"
+
+    return "unknown"
+
+
 def run_scan():
     print("WiFiGuard by RabitCodeKu")
     print("Know your connection. Reduce your risk. Privacy matters.")
     print("-" * 40)
 
-    scan_result = run_wifiguard_scan()
+    network_context = prompt_for_network_context()
+    scan_result = run_wifiguard_scan(network_context=network_context)
     network_info = scan_result["network_info"]
     wifi_info = scan_result["wifi_info"]
     wifi_network_name = wifi_info["name"]
@@ -155,6 +173,7 @@ def run_scan():
         print(f"- Score: {risk_result['score']}/100")
 
     print(f"- Summary: {risk_result['summary']}")
+    print("- Note: WiFiGuard checks local device and connection indicators; it cannot guarantee that a network is safe.")
 
     print("\nMain findings:")
     for finding in risk_result["findings"]:

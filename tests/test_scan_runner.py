@@ -78,7 +78,9 @@ def install_mock_scan_dependencies(monkeypatch):
 
     def calculate_risk(**kwargs):
         calls["risk_kwargs"] = kwargs
-        return risk_result
+        result = dict(risk_result)
+        result["network_context"] = kwargs.get("network_context", "unknown")
+        return result
 
     monkeypatch.setattr(scan_runner, "get_network_info", lambda: network_info)
     monkeypatch.setattr(scan_runner, "get_wifi_network_info", lambda: wifi_info)
@@ -122,6 +124,7 @@ def test_run_wifiguard_scan_returns_expected_result_keys(monkeypatch):
         "vpn_status",
         "gateway_info",
         "sharing_services_status",
+        "network_context",
         "risk_result",
         "check_results"
     }
@@ -150,15 +153,18 @@ def test_run_wifiguard_scan_returns_report_ready_check_results(monkeypatch):
         "classified_servers": expected["classified_dns_servers"]
     }
     assert check_results[-1]["status"] == "Lower risk"
-    assert check_results[-1]["raw_value"] == expected["risk_result"]
+    assert check_results[-1]["raw_value"]["level"] == expected["risk_result"]["level"]
+    assert check_results[-1]["raw_value"]["network_context"] == "unknown"
 
 
 def test_run_wifiguard_scan_includes_risk_result(monkeypatch):
     expected = install_mock_scan_dependencies(monkeypatch)
 
-    result = scan_runner.run_wifiguard_scan()
+    result = scan_runner.run_wifiguard_scan(network_context="public")
 
-    assert result["risk_result"] == expected["risk_result"]
+    assert result["network_context"] == "public"
+    assert result["risk_result"]["level"] == expected["risk_result"]["level"]
+    assert result["risk_result"]["network_context"] == "public"
     assert expected["calls"]["dns_servers"] == ["192.168.1.1"]
     assert expected["calls"]["risk_kwargs"] == {
         "network_info": expected["network_info"],
@@ -166,7 +172,8 @@ def test_run_wifiguard_scan_includes_risk_result(monkeypatch):
         "vpn_status": expected["vpn_status"],
         "classified_dns_servers": expected["classified_dns_servers"],
         "sharing_services": expected["sharing_services_status"],
-        "gateway_info": expected["gateway_info"]
+        "gateway_info": expected["gateway_info"],
+        "network_context": "public"
     }
 
 
@@ -216,3 +223,14 @@ def test_clear_history_command_does_not_run_scan(monkeypatch):
     main.main()
 
     assert calls == {"clear_history": True}
+
+
+def test_network_context_prompt_maps_answers(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda prompt: "yes")
+    assert main.prompt_for_network_context() == "public"
+
+    monkeypatch.setattr("builtins.input", lambda prompt: "n")
+    assert main.prompt_for_network_context() == "trusted"
+
+    monkeypatch.setattr("builtins.input", lambda prompt: "")
+    assert main.prompt_for_network_context() == "unknown"

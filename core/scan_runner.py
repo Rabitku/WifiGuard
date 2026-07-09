@@ -77,7 +77,7 @@ def build_check_results(
     return check_results
 
 
-def run_wifiguard_scan():
+def run_wifiguard_scan(network_context="unknown"):
     network_info = get_network_info()
     wifi_info = get_wifi_network_info()
     dns_info = get_dns_info()
@@ -93,7 +93,8 @@ def run_wifiguard_scan():
         vpn_status=vpn_status,
         classified_dns_servers=classified_dns_servers,
         sharing_services=sharing_services_status,
-        gateway_info=gateway_info
+        gateway_info=gateway_info,
+        network_context=network_context
     )
     check_results = build_check_results(
         network_info=network_info,
@@ -116,6 +117,7 @@ def run_wifiguard_scan():
         "vpn_status": vpn_status,
         "gateway_info": gateway_info,
         "sharing_services_status": sharing_services_status,
+        "network_context": risk_result.get("network_context"),
         "risk_result": risk_result,
         "check_results": check_results
     }

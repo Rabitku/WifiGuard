@@ -111,7 +111,8 @@ def calculate_baseline_risk(
     network_info=None,
     vpn_status=None,
     classified_dns_servers=None,
-    gateway_info=None
+    gateway_info=None,
+    network_context="trusted"
 ):
     return calculate_risk(
         network_info=network_info or make_network_info(),
@@ -119,7 +120,8 @@ def calculate_baseline_risk(
         vpn_status=vpn_status or make_vpn_status(),
         classified_dns_servers=classified_dns_servers or make_private_dns_servers(),
         sharing_services=sharing_services or make_sharing_services(active=False),
-        gateway_info=gateway_info or make_gateway_info(detected=True)
+        gateway_info=gateway_info or make_gateway_info(detected=True),
+        network_context=network_context
     )
 
 
@@ -150,6 +152,53 @@ def test_firewall_enabled_is_recognised_without_enable_firewall_recommendation()
     assert text_contains(result["findings"], "firewall is enabled")
     assert not text_contains(result["findings"], "firewall status could not be confirmed")
     assert not text_contains(result["recommendations"], "enable the macos firewall")
+
+
+def test_safe_looking_trusted_network_can_remain_lower_risk():
+    result = calculate_baseline_risk(network_context="trusted")
+
+    assert result["level"] == "Lower risk"
+    assert result["score"] == 5
+    assert result["network_context"] == "trusted"
+    assert text_contains(result["findings"], "marked as trusted")
+
+
+def test_same_setup_marked_public_gets_higher_score():
+    trusted_result = calculate_baseline_risk(network_context="trusted")
+    public_result = calculate_baseline_risk(network_context="public")
+
+    assert public_result["score"] > trusted_result["score"]
+    assert public_result["level"] == "Medium caution"
+    assert text_contains(public_result["findings"], "public or shared")
+    assert text_contains(public_result["recommendations"], "trusted vpn")
+
+
+def test_public_network_without_confirmed_vpn_does_not_get_tiny_score():
+    result = calculate_baseline_risk(network_context="public")
+
+    assert result["score"] == 30
+    assert result["score"] > 5
+    assert result["level"] == "Medium caution"
+    assert text_contains(
+        result["findings"],
+        "vpn protection was not confirmed on a public or shared network"
+    )
+
+
+def test_default_network_context_is_unknown_and_less_cautious_than_public():
+    unknown_result = calculate_risk(
+        network_info=make_network_info(),
+        firewall_status=make_firewall_status("Enabled"),
+        vpn_status=make_vpn_status(),
+        classified_dns_servers=make_private_dns_servers(),
+        sharing_services=make_sharing_services(active=False),
+        gateway_info=make_gateway_info(detected=True)
+    )
+    public_result = calculate_baseline_risk(network_context="public")
+
+    assert unknown_result["network_context"] == "unknown"
+    assert unknown_result["score"] < public_result["score"]
+    assert text_contains(unknown_result["findings"], "network trust context was not specified")
 
 
 def test_firewall_disabled_scores_higher_than_firewall_enabled():
@@ -217,7 +266,7 @@ def test_safer_baseline_returns_score_findings_and_recommendations():
 
     assert isinstance(result["score"], int)
     assert 0 <= result["score"] <= 100
-    assert result["level"] in ["Lower risk", "Medium risk", "Higher risk"]
+    assert result["level"] in ["Lower risk", "Medium caution", "Higher caution"]
     assert isinstance(result["findings"], list)
     assert result["findings"]
     assert isinstance(result["recommendations"], list)

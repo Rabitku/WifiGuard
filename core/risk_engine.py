@@ -7,17 +7,28 @@ def is_unavailable_or_failed(status):
     return status in ["unavailable", "check failed"]
 
 
+def normalise_network_context(network_context):
+    network_context = normalise_status(network_context)
+
+    if network_context in ["trusted", "public", "unknown"]:
+        return network_context
+
+    return "unknown"
+
+
 def calculate_risk(
     network_info,
     firewall_status,
     vpn_status,
     classified_dns_servers,
     sharing_services,
-    gateway_info
+    gateway_info,
+    network_context="unknown"
 ):
     score = 0
     findings = []
     recommendations = []
+    network_context = normalise_network_context(network_context)
 
     # Network presence
     active_interfaces = network_info.get("active_interfaces", [])
@@ -27,11 +38,28 @@ def calculate_risk(
             "level": "Unknown",
             "score": None,
             "summary": "No active network connection was detected.",
+            "network_context": network_context,
             "findings": ["WiFiGuard could not detect an active network interface."],
             "recommendations": ["Connect to a network before running WiFiGuard again."]
         }
 
     findings.append("Active network connection detected.")
+
+    # Network trust context
+    if network_context == "public":
+        score += 15
+        findings.append("This network was marked as public or shared.")
+        recommendations.append(
+            "Avoid sensitive activity on public Wi-Fi unless using a trusted VPN."
+        )
+    elif network_context == "unknown":
+        score += 5
+        findings.append("Network trust context was not specified.")
+        recommendations.append(
+            "Treat unfamiliar Wi-Fi as shared unless you trust the network."
+        )
+    else:
+        findings.append("This network was marked as trusted.")
 
     # Gateway check
     gateway_status = normalise_status(gateway_info.get("status"))
@@ -76,9 +104,18 @@ def calculate_risk(
         findings.append("VPN or tunnel routing evidence detected.")
 
     elif vpn_text == "not detected" or "not confirmed" in vpn_text or "no vpn" in vpn_text:
-        score += 5
-        findings.append("VPN route was not confirmed.")
-        recommendations.append("Consider using a trusted VPN when using shared or public Wi-Fi.")
+        if network_context == "public":
+            score += 15
+            findings.append(
+                "VPN protection was not confirmed on a public or shared network."
+            )
+            recommendations.append(
+                "Use a trusted VPN before sensitive activity on public or shared Wi-Fi."
+            )
+        else:
+            score += 5
+            findings.append("VPN route was not confirmed.")
+            recommendations.append("Consider using a trusted VPN when using shared or public Wi-Fi.")
 
     elif is_unavailable_or_failed(vpn_text):
         findings.append("WiFiGuard could not verify VPN routing, so its status is unknown.")
@@ -149,12 +186,12 @@ def calculate_risk(
 
     if score <= 20:
         level = "Lower risk"
-        summary = "Your current setup appears lower risk based on local checks."
+        summary = "Your device posture appears lower risk based on local checks, but WiFiGuard cannot guarantee that the network is safe."
     elif score <= 50:
-        level = "Medium risk"
+        level = "Medium caution"
         summary = "Some recommended protections are missing or could not be confirmed."
     else:
-        level = "Higher risk"
+        level = "Higher caution"
         summary = "Several risk factors were detected. Review the recommendations before using sensitive services."
 
     if not recommendations:
@@ -164,6 +201,7 @@ def calculate_risk(
         "level": level,
         "score": score,
         "summary": summary,
+        "network_context": network_context,
         "findings": findings,
         "recommendations": recommendations
     }
