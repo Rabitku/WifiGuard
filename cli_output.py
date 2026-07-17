@@ -1,23 +1,24 @@
-from core.ip_classifier import classify_ip_address
-
-
 def print_scan_header():
     print("WiFiGuard by RabitCodeKu")
     print("Know your connection. Reduce your risk. Privacy matters.")
     print("-" * 40)
 
 
-def print_connection_details(network_info, gateway_info):
+def print_connection_details(
+    gateway_info,
+    classified_active_interfaces,
+    classified_gateway
+):
     print("\nConnection details:")
 
-    if not network_info["active_interfaces"]:
+    if not classified_active_interfaces:
         print("- Active interface: Not detected")
         print("- Local IP address: Not detected")
         print("- IP type: Unknown")
         print("- IP notes: No active interface was available to classify.")
     else:
-        primary_interface = network_info["active_interfaces"][0]
-        ip_info = classify_ip_address(primary_interface["ip_address"])
+        primary_interface = classified_active_interfaces[0]
+        ip_info = primary_interface["ip_classification"]
 
         print(f"- Active interface: {primary_interface['interface']}")
         print(f"- Local IP address: {primary_interface['ip_address']}")
@@ -26,13 +27,14 @@ def print_connection_details(network_info, gateway_info):
 
     print(f"- Gateway status: {gateway_info['status']}")
 
-    if gateway_info["gateway"]:
-        gateway_ip_info = classify_ip_address(gateway_info["gateway"])
+    gateway_ip_info = classified_gateway["ip_classification"]
+
+    if classified_gateway["gateway"]:
         gateway_type = gateway_ip_info["classification"]
-        gateway_value = gateway_info["gateway"]
+        gateway_value = classified_gateway["gateway"]
     else:
         gateway_value = gateway_info["status"]
-        gateway_type = gateway_info["status"]
+        gateway_type = gateway_ip_info["classification"]
 
     print(f"- Default gateway: {gateway_value}")
     print(f"- Gateway type: {gateway_type}")
@@ -105,6 +107,8 @@ def print_scan_result(scan_result, report_id):
     vpn_status = scan_result["vpn_status"]
     gateway_info = scan_result["gateway_info"]
     sharing_services_status = scan_result["sharing_services_status"]
+    classified_active_interfaces = scan_result["classified_active_interfaces"]
+    classified_gateway = scan_result["classified_gateway"]
     classified_dns_servers = scan_result["classified_dns_servers"]
     risk_result = scan_result["risk_result"]
 
@@ -115,7 +119,11 @@ def print_scan_result(scan_result, report_id):
     print(f"- Wi-Fi network: {wifi_network_name}")
     print(f"- Wi-Fi status: {wifi_info['status']}")
 
-    print_connection_details(network_info, gateway_info)
+    print_connection_details(
+        gateway_info,
+        classified_active_interfaces,
+        classified_gateway
+    )
     print_dns_servers(dns_info, classified_dns_servers)
 
     print("\nFirewall:")

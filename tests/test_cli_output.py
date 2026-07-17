@@ -21,6 +21,23 @@ def make_scan_result():
             "servers": ["192.168.1.1"],
             "message": "1 DNS server(s) detected."
         },
+        "classified_active_interfaces": [
+            {
+                "interface": "en0",
+                "ip_address": "192.168.1.10",
+                "ip_classification": {
+                    "classification": "Private/local address",
+                    "notes": "This address is used inside a local network, not directly on the public internet."
+                }
+            }
+        ],
+        "classified_gateway": {
+            "gateway": "192.168.1.1",
+            "ip_classification": {
+                "classification": "Private/local address",
+                "notes": "This address is used inside a local network, not directly on the public internet."
+            }
+        },
         "classified_dns_servers": [
             {
                 "server": "192.168.1.1",

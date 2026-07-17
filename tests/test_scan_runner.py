@@ -2,6 +2,7 @@ import argparse
 
 import main
 from core import scan_runner
+from storage import database
 
 
 def install_mock_scan_dependencies(monkeypatch):
@@ -119,6 +120,8 @@ def test_run_wifiguard_scan_returns_expected_result_keys(monkeypatch):
         "network_info",
         "wifi_info",
         "dns_info",
+        "classified_active_interfaces",
+        "classified_gateway",
         "classified_dns_servers",
         "firewall_status",
         "vpn_status",
@@ -157,6 +160,30 @@ def test_run_wifiguard_scan_returns_report_ready_check_results(monkeypatch):
     assert check_results[-1]["raw_value"]["network_context"] == "unknown"
 
 
+def test_run_wifiguard_scan_returns_classified_ip_data(monkeypatch):
+    install_mock_scan_dependencies(monkeypatch)
+
+    result = scan_runner.run_wifiguard_scan()
+
+    assert result["classified_active_interfaces"] == [
+        {
+            "interface": "en0",
+            "ip_address": "192.168.1.10",
+            "ip_classification": {
+                "classification": "Private/local address",
+                "notes": "This address is used inside a local network, not directly on the public internet."
+            }
+        }
+    ]
+    assert result["classified_gateway"] == {
+        "gateway": "192.168.1.1",
+        "ip_classification": {
+            "classification": "Private/local address",
+            "notes": "This address is used inside a local network, not directly on the public internet."
+        }
+    }
+
+
 def test_run_wifiguard_scan_includes_risk_result(monkeypatch):
     expected = install_mock_scan_dependencies(monkeypatch)
 
@@ -175,6 +202,16 @@ def test_run_wifiguard_scan_includes_risk_result(monkeypatch):
         "gateway_info": expected["gateway_info"],
         "network_context": "public"
     }
+
+
+def test_run_wifiguard_scan_does_not_create_or_save_reports(monkeypatch, tmp_path):
+    install_mock_scan_dependencies(monkeypatch)
+    database_path = tmp_path / "wifiguard.db"
+    monkeypatch.setattr(database, "DATABASE_PATH", database_path)
+
+    scan_runner.run_wifiguard_scan()
+
+    assert not database_path.exists()
 
 
 def test_history_command_does_not_run_scan(monkeypatch):
